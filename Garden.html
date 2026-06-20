@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Garden">
+<meta name="theme-color" content="#1A2E18">
+<title>Garden</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:#0E1210;}
+body{font-family:-apple-system,'DM Sans',system-ui,sans-serif;max-width:480px;margin:0 auto;overflow-x:hidden;}
+
+/* SAFE AREA */
+.safe-top{padding-top:env(safe-area-inset-top,14px);}
+.safe-bot{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 72px);}
+
+/* TRANSITIONS */
+.page{display:none;animation:fadeIn 0.18s ease;}
+.page.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* TOAST */
+#toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);padding:11px 22px;border-radius:14px;font-size:14px;font-weight:600;z-index:999;white-space:nowrap;opacity:0;transition:all 0.3s;pointer-events:none;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* NAV */
+#nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;display:flex;justify-content:space-around;align-items:center;padding:8px 0;padding-bottom:calc(8px + env(safe-area-inset-bottom,8px));z-index:100;transition:background 0.3s;border-top-width:1.5px;border-top-style:solid;}
+.nav-btn{background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 10px;font-family:inherit;}
+.nav-btn .nav-emoji{font-size:20px;opacity:0.35;transition:opacity 0.15s;}
+.nav-btn .nav-label{font-size:10px;font-weight:500;transition:color 0.15s;letter-spacing:0;}
+.nav-btn .nav-dot{width:20px;height:2.5px;border-radius:99px;margin-top:1px;display:none;}
+.nav-btn.active .nav-emoji{opacity:1;}
+.nav-btn.active .nav-label{font-weight:800;letter-spacing:0.02em;}
+.nav-btn.active .nav-dot{display:block;}
+
+/* HERO */
+.hero{padding:32px 20px 28px;position:relative;overflow:hidden;}
+.hero-leaf1{position:absolute;bottom:-20px;right:-10px;font-size:130px;opacity:0.06;user-select:none;transform:rotate(-20deg);pointer-events:none;}
+.hero-leaf2{position:absolute;top:-10px;left:-20px;font-size:100px;opacity:0.05;user-select:none;transform:rotate(15deg);pointer-events:none;}
+.hero-inner{position:relative;}
+.hero-season{font-size:11px;text-transform:uppercase;letter-spacing:0.14em;font-weight:700;margin-bottom:8px;}
+.hero-title{font-size:34px;font-weight:900;font-family:Georgia,serif;line-height:1.05;margin-bottom:16px;}
+.hero-box{background:#FFFFFF0E;border-radius:18px;padding:18px;border:1px solid #FFFFFF0A;}
+.hero-box-label{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-bottom:4px;}
+.hero-total{font-size:46px;font-weight:900;font-family:Georgia,serif;line-height:1;letter-spacing:-0.02em;color:#A8F090;}
+.hero-stats{display:flex;gap:16px;margin-top:10px;}
+.hero-stat-val{font-size:16px;font-weight:700;}
+.hero-stat-lbl{font-size:10px;text-transform:uppercase;letter-spacing:0.06em;}
+.hero-sep{width:1px;background:#FFFFFF14;}
+
+/* CARDS */
+.section{padding:20px 16px 0;}
+.section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;}
+.card{border-radius:20px;padding:18px 16px;margin-bottom:12px;border-width:1px;border-style:solid;}
+.card-row{display:flex;justify-content:space-between;align-items:flex-start;}
+.card-icon{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;}
+.card-name{font-size:16px;font-weight:800;font-family:Georgia,serif;}
+.card-sub{font-size:11px;margin-top:1px;}
+.card-price{font-size:22px;font-weight:900;font-family:Georgia,serif;}
+.card-price-sub{font-size:11px;text-align:right;margin-top:1px;}
+.bar-wrap{height:8px;border-radius:99px;overflow:hidden;display:flex;margin:12px 0 6px;}
+.bar-sold{height:100%;border-radius:99px 0 0 99px;transition:width 0.7s ease;}
+.bar-gift{height:100%;transition:width 0.7s ease;}
+.bar-legend{display:flex;gap:12px;flex-wrap:wrap;}
+.bar-dot{width:8px;height:8px;border-radius:99px;flex-shrink:0;}
+.bar-leg-item{display:flex;align-items:center;gap:4px;font-size:10px;}
+
+/* FORM */
+.form-tag{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;padding:4px 12px;border-radius:99px;margin-bottom:10px;}
+.form-title{font-size:28px;font-weight:900;font-family:Georgia,serif;line-height:1.1;margin-bottom:20px;}
+.fruit-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+.fruit-btn{padding:13px 8px;border-radius:16px;border-width:2px;border-style:solid;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:inherit;transition:all 0.15s;background:none;}
+.fruit-btn .fb-emoji{font-size:24px;}
+.fruit-btn .fb-label{font-weight:500;font-size:13px;}
+.type-row{display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;padding-bottom:2px;scrollbar-width:none;}
+.type-row::-webkit-scrollbar{display:none;}
+.type-btn{padding:7px 14px;border-radius:99px;border-width:1.5px;border-style:solid;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;font-size:12px;font-weight:500;transition:all 0.15s;background:none;}
+.form-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.form-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;}
+.form-field{margin-bottom:12px;}
+.lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;display:block;margin-bottom:5px;}
+.inp{width:100%;padding:13px 14px;border-width:1.5px;border-style:solid;border-radius:13px;font-size:15px;font-family:inherit;outline:none;box-sizing:border-box;}
+.inp-row{display:flex;gap:6px;}
+.btn-main{width:100%;padding:16px;border:none;border-radius:15px;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;transition:all 0.2s;}
+.btn-sec{width:100%;padding:14px;background:none;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;border-width:1.5px;border-style:solid;margin-top:8px;}
+.err-msg{font-size:13px;border-radius:10px;padding:9px 14px;margin-bottom:12px;}
+
+/* HISTORY */
+.tog-wrap{display:flex;border-radius:14px;padding:4px;margin-bottom:12px;gap:4px;}
+.tog-btn{flex:1;padding:9px 0;border-radius:11px;border:none;font-weight:500;font-size:13px;cursor:pointer;font-family:inherit;transition:all 0.15s;}
+.filter-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;scrollbar-width:none;}
+.filter-row::-webkit-scrollbar{display:none;}
+.filter-btn{padding:6px 14px;border-radius:99px;border-width:1.5px;border-style:solid;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;font-size:12px;font-weight:500;transition:all 0.15s;background:none;}
+.hist-item{border-width:1.5px;border-style:solid;border-radius:16px;padding:13px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+.hist-icon{width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.hist-name{font-size:14px;font-weight:700;}
+.hist-meta{font-size:11px;margin-top:1px;}
+.hist-price{font-family:Georgia,serif;font-weight:800;font-size:14px;flex-shrink:0;}
+.del-btn{background:none;border:none;cursor:pointer;font-size:16px;padding:4px;line-height:1;flex-shrink:0;}
+.empty{text-align:center;font-size:14px;padding:40px 0;font-style:italic;}
+
+/* ANALYSE */
+.analyse-box{border-width:1.5px;border-style:solid;border-radius:18px;padding:20px 18px;margin-top:0;}
+.analyse-box-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;}
+.analyse-text{font-size:15px;line-height:1.75;}
+.analyse-reset{margin-top:14px;background:none;border:none;cursor:pointer;font-size:12px;font-family:inherit;padding:0;}
+
+/* DARK MODE toggle */
+#dark-toggle{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));right:16px;z-index:200;border-radius:99px;padding:6px 14px;font-size:13px;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px #0000001A;transition:all 0.2s;border-width:1px;border-style:solid;}
+</style>
+</head>
+<body>
+
+<button id="dark-toggle" onclick="toggleDark()"></button>
+
+<!-- ═══ ACCUEIL ═══ -->
+<div id="page-accueil" class="page safe-top">
+  <div class="hero" id="hero-bg">
+    <div class="hero-leaf1">🌿</div>
+    <div class="hero-leaf2">🍃</div>
+    <div class="hero-inner">
+      <div class="hero-season" id="hero-season-lbl"></div>
+      <div class="hero-title" id="hero-title-lbl">Garden</div>
+      <div class="hero-box">
+        <div class="hero-box-label" id="hero-box-lbl"></div>
+        <div class="hero-total" id="hero-total">0,00 €</div>
+        <div class="hero-stats">
+          <div><div class="hero-stat-val" id="stat-kg">0 kg</div><div class="hero-stat-lbl" id="stat-kg-lbl">Récoltés</div></div>
+          <div class="hero-sep"></div>
+          <div><div class="hero-stat-val" id="stat-nb">0</div><div class="hero-stat-lbl">Ventes</div></div>
+          <div class="hero-sep" id="sep-dons" style="display:none"></div>
+          <div id="stat-dons-wrap" style="display:none"><div class="hero-stat-val" id="stat-dons">0 kg</div><div class="hero-stat-lbl">Donnés</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-label" id="lbl-bilan-fruit"></div>
+    <div id="fruit-cards"></div>
+    <div id="empty-accueil" class="empty" style="display:none"></div>
+  </div>
+  <div class="section" id="section-recents" style="display:none">
+    <div class="section-label" id="lbl-recents"></div>
+    <div id="recent-list"></div>
+  </div>
+  <div style="height:16px"></div>
+</div>
+
+<!-- ═══ RÉCOLTE ═══ -->
+<div id="page-recolte" class="page safe-top">
+  <div class="section">
+    <div class="form-tag" id="recolte-tag"></div>
+    <div class="form-title">Nouvelle<br>récolte</div>
+    <div class="fruit-grid" id="fruit-grid-r"></div>
+    <div class="form-grid2">
+      <div><label class="lbl" id="lbl-date-r"></label><input class="inp" type="datetime-local" id="inp-date-r"></div>
+      <div><label class="lbl" id="lbl-qte-r"></label><input class="inp" type="number" placeholder="3.5" id="inp-qte-r" min="0" step="0.1"></div>
+    </div>
+    <div class="form-field"><label class="lbl" id="lbl-note-r"></label><input class="inp" type="text" placeholder="Qualité, météo, remarque…" id="inp-note-r"></div>
+    <div class="err-msg" id="err-r" style="display:none"></div>
+    <button class="btn-main" id="btn-recolte" onclick="submitRecolte()">🌱 Enregistrer la récolte</button>
+  </div>
+</div>
+
+<!-- ═══ VENTE ═══ -->
+<div id="page-vente" class="page safe-top">
+  <div class="section">
+    <div class="form-tag" id="vente-tag"></div>
+    <div class="form-title">Vente<br>ou don</div>
+    <div class="fruit-grid" id="fruit-grid-v"></div>
+    <div class="type-row" id="type-row-v"></div>
+    <div class="form-grid2">
+      <div><label class="lbl" id="lbl-date-v"></label><input class="inp" type="datetime-local" id="inp-date-v"></div>
+      <div>
+        <label class="lbl" id="lbl-qte-v"></label>
+        <div class="inp-row">
+          <input class="inp" type="number" placeholder="2" id="inp-qte-v" min="0" step="0.1" style="flex:1">
+          <select class="inp" id="inp-unite-v" style="width:90px;flex:none"><option>kg</option><option>pièce(s)</option><option>pot(s)</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="form-field" id="prix-field"><label class="lbl" id="lbl-prix-v"></label><input class="inp" type="number" placeholder="6.00" id="inp-prix-v" min="0" step="0.5"></div>
+    <div class="form-field"><label class="lbl" id="lbl-info-v"></label><input class="inp" type="text" placeholder="Voisin, marché, famille…" id="inp-info-v"></div>
+    <div class="err-msg" id="err-v" style="display:none"></div>
+    <button class="btn-main" id="btn-vente" onclick="submitVente()">💰 Enregistrer la vente</button>
+  </div>
+</div>
+
+<!-- ═══ HISTORIQUE ═══ -->
+<div id="page-historique" class="page safe-top">
+  <div class="section">
+    <div style="font-size:28px;font-weight:900;font-family:Georgia,serif;margin-bottom:16px;" id="hist-title"></div>
+    <div class="tog-wrap" id="tog-wrap">
+      <button class="tog-btn active" id="tog-ventes" onclick="setVue('ventes')">💰 Ventes &amp; dons</button>
+      <button class="tog-btn" id="tog-recoltes" onclick="setVue('recoltes')">🌱 Récoltes</button>
+    </div>
+    <div class="filter-row" id="filter-row"></div>
+    <div id="hist-list"></div>
+    <button class="btn-sec" id="btn-export" onclick="exportCSV()" style="display:none"></button>
+  </div>
+</div>
+
+<!-- ═══ ANALYSE ═══ -->
+<div id="page-analyse" class="page safe-top">
+  <div class="section">
+    <div class="form-tag" id="analyse-tag"></div>
+    <div style="font-size:28px;font-weight:900;font-family:Georgia,serif;line-height:1.1;margin-bottom:6px;">Analyse<br>de saison</div>
+    <div style="font-size:13px;margin-bottom:20px;line-height:1.6;" id="analyse-intro"></div>
+    <div id="analyse-fruit-list" style="margin-bottom:20px;"></div>
+    <div id="analyse-empty" class="empty" style="display:none;"></div>
+    <button class="btn-main" id="btn-analyse" onclick="lancerAnalyse()" style="display:none;margin-bottom:16px;">✨ Analyser ma saison 2026</button>
+    <div class="err-msg" id="err-analyse" style="display:none"></div>
+    <div class="analyse-box" id="analyse-result" style="display:none">
+      <div class="analyse-box-label" id="analyse-result-lbl"></div>
+      <div class="analyse-text" id="analyse-text"></div>
+      <button class="analyse-reset" id="analyse-reset" onclick="resetAnalyse()"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ NAVIGATION ═══ -->
+<nav id="nav">
+  <button class="nav-btn active" data-tab="accueil" onclick="goTab('accueil')">
+    <span class="nav-emoji">◉</span><span class="nav-label" id="nl-accueil">Bilan</span><div class="nav-dot"></div>
+  </button>
+  <button class="nav-btn" data-tab="recolte" onclick="goTab('recolte')">
+    <span class="nav-emoji">🌱</span><span class="nav-label" id="nl-recolte">Récolte</span><div class="nav-dot"></div>
+  </button>
+  <button class="nav-btn" data-tab="vente" onclick="goTab('vente')">
+    <span class="nav-emoji">💰</span><span class="nav-label" id="nl-vente">Vente</span><div class="nav-dot"></div>
+  </button>
+  <button class="nav-btn" data-tab="historique" onclick="goTab('historique')">
+    <span class="nav-emoji">≡</span><span class="nav-label" id="nl-hist">Historique</span><div class="nav-dot"></div>
+  </button>
+  <button class="nav-btn" data-tab="analyse" onclick="goTab('analyse')">
+    <span class="nav-emoji">✨</span><span class="nav-label" id="nl-analyse">Analyse</span><div class="nav-dot"></div>
+  </button>
+</nav>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// DONNÉES & CONSTANTES
+// ═══════════════════════════════════════════════════
+const STORAGE_KEY = "garden_2026_v1";
+
+const FRUITS = [
+  { id:"figue",  label:"Figues",  emoji:"🌿", color:"#E879A0", colorD:"#C05080", light:"#FDF5F9", lightD:"#2A1020", accent:"#F2C4DC" },
+  { id:"raisin", label:"Raisins", emoji:"🍇", color:"#9B7FE8", colorD:"#7B5FC8", light:"#F7F4FD", lightD:"#1A1030", accent:"#C8B0F0" },
+  { id:"prune",  label:"Prunes",  emoji:"🍑", color:"#F08050", colorD:"#D06030", light:"#FDF6F0", lightD:"#2A1808", accent:"#F0C090" },
+  { id:"poire",  label:"Poires",  emoji:"🍐", color:"#5ACA80", colorD:"#3AAA60", light:"#F2F9EE", lightD:"#0E2018", accent:"#A8D890" },
+];
+const TYPES = [
+  {id:"vrac",      label:"Vrac",        emoji:"⚖️"},
+  {id:"caissette", label:"Caissette",   emoji:"📦"},
+  {id:"confiture", label:"Confiture",   emoji:"🫙"},
+  {id:"don",       label:"Don famille", emoji:"🎁"},
+  {id:"autre",     label:"Autre",       emoji:"🛒"},
+];
+
+const LT = { bg:"#FAFAF7",card:"#FFFFFF",border:"#E4EAE0",text:"#1A2E18",sub:"#7A8A76",muted:"#B0BCA8",input:"#F4F7F2",navBg:"#FFFFFF",barBg:"#EEF4EA",tag:"#E8F4E0",tagTxt:"#2A5A18",heroSub:"#7AAA70",heroTxt:"#EDFAE8",accentBg:"#EAF7E0",accentBorder:"#B8E0A0",accentTxt:"#2A5A18",activeNav:"#1A2E18" };
+const DT = { bg:"#0E1210",card:"#161E14",border:"#243020",text:"#E8F4E4",sub:"#5A7A54",muted:"#344830",input:"#1C2818",navBg:"#121A10",barBg:"#1C2818",tag:"#1A2E16",tagTxt:"#5ACA80",heroSub:"#4A7A44",heroTxt:"#D8F0D0",accentBg:"#0E2A14",accentBorder:"#1A4A20",accentTxt:"#5ACA80",activeNav:"#5ACA80" };
+
+let dark = false;
+let recoltes = [];
+let ventes   = [];
+let selFruitR = "figue";
+let selFruitV = "figue";
+let selTypeV  = "vrac";
+let vueHist   = "ventes";
+let filtreHist = "tous";
+let analyseText = null;
+
+// ═══════════════════════════════════════════════════
+// STORAGE
+// ═══════════════════════════════════════════════════
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      recoltes = d.recoltes || [];
+      ventes   = d.ventes   || [];
+      dark     = d.dark     || false;
+    }
+  } catch(e) {}
+}
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({recoltes,ventes,dark})); } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════
+// UTILITAIRES
+// ═══════════════════════════════════════════════════
+function fmt(n){ return n.toFixed(2).replace(".",",")+"\u202f€"; }
+function nowLocal(){
+  const n=new Date(), p=x=>String(x).padStart(2,"0");
+  return `${n.getFullYear()}-${p(n.getMonth()+1)}-${p(n.getDate())}T${p(n.getHours())}:${p(n.getMinutes())}`;
+}
+function fmtDate(iso){
+  if(!iso) return "";
+  const [d,t]=iso.split("T"), [y,m,dd]=d.split("-");
+  return `${dd}/${m}/${y}${t?" "+t.slice(0,5):""}`;
+}
+function T(){ return dark ? DT : LT; }
+function fc(fruit){ return dark ? fruit.colorD : fruit.color; }
+function fb(fruit){ return dark ? fruit.lightD : fruit.light; }
+function getFruit(id){ return FRUITS.find(f=>f.id===id)||FRUITS[0]; }
+
+function showToast(msg){
+  const el=document.getElementById("toast");
+  el.textContent=msg;
+  el.style.background=dark?"#1C2818":"#1A2E18";
+  el.style.color=dark?"#A8D890":"#D8EED0";
+  el.classList.add("show");
+  setTimeout(()=>el.classList.remove("show"),2500);
+}
+
+function showErr(id,msg){
+  const el=document.getElementById(id);
+  el.textContent=msg;
+  el.style.color="#E06050";
+  el.style.background=dark?"#2A1010":"#FDF0EC";
+  el.style.display="block";
+}
+function hideErr(id){ document.getElementById(id).style.display="none"; }
+
+// ═══════════════════════════════════════════════════
+// THÈME
+// ═══════════════════════════════════════════════════
+function applyTheme(){
+  const t=T();
+  document.body.style.background=t.bg;
+  document.body.style.color=t.text;
+
+  // toggle btn
+  const tog=document.getElementById("dark-toggle");
+  tog.textContent=dark?"☀️ Clair":"🌙 Sombre";
+  tog.style.background=t.card; tog.style.borderColor=t.border; tog.style.color=t.sub;
+
+  // nav
+  const nav=document.getElementById("nav");
+  nav.style.background=t.navBg; nav.style.borderTopColor=t.border;
+  document.querySelectorAll(".nav-btn .nav-label").forEach(el=>el.style.color=t.sub);
+  document.querySelectorAll(".nav-btn.active .nav-label").forEach(el=>el.style.color=t.activeNav);
+  document.querySelectorAll(".nav-btn.active .nav-dot").forEach(el=>el.style.background=t.activeNav);
+
+  // hero
+  const heroBg=document.getElementById("hero-bg");
+  heroBg.style.background=dark?"linear-gradient(160deg,#081008 0%,#0E1E0C 50%,#142014 100%)":"linear-gradient(160deg,#122010 0%,#1A2E18 55%,#243822 100%)";
+  document.getElementById("hero-season-lbl").style.color=t.heroSub;
+  document.getElementById("hero-title-lbl").style.color=t.heroTxt;
+  document.getElementById("hero-box-lbl").style.color=t.heroSub;
+  document.querySelectorAll(".hero-stat-lbl").forEach(el=>el.style.color=t.heroSub);
+  document.querySelectorAll(".hero-stat-val").forEach(el=>el.style.color=t.heroTxt);
+
+  // inputs
+  document.querySelectorAll(".inp").forEach(el=>{
+    el.style.background=t.input; el.style.borderColor=t.border; el.style.color=t.text;
+  });
+  // labels
+  document.querySelectorAll(".lbl").forEach(el=>el.style.color=t.sub);
+  document.querySelectorAll(".section-label").forEach(el=>el.style.color=t.sub);
+  document.querySelectorAll(".form-tag").forEach(el=>{el.style.background=t.tag;el.style.color=t.tagTxt;});
+
+  // hist
+  const togWrap=document.getElementById("tog-wrap");
+  if(togWrap) togWrap.style.background=t.barBg;
+  document.querySelectorAll(".tog-btn").forEach(el=>{
+    el.style.background="transparent"; el.style.color=t.sub;
+  });
+  const activeTog=document.getElementById("tog-"+vueHist);
+  if(activeTog){activeTog.style.background=t.card;activeTog.style.color=t.text;}
+
+  document.getElementById("hist-title").style.color=t.text;
+  document.getElementById("analyse-intro").style.color=t.sub;
+  document.getElementById("analyse-tag").style.background=t.tag;
+  document.getElementById("analyse-tag").style.color=t.tagTxt;
+}
+
+function toggleDark(){
+  dark=!dark; save(); applyTheme();
+  renderAccueil(); renderFruitGrids(); renderTypeRow();
+  renderHistorique(); renderAnalyseFruits();
+}
+
+// ═══════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════
+let currentTab = "accueil";
+function goTab(tab){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".nav-btn").forEach(b=>{
+    b.classList.remove("active");
+    b.querySelector(".nav-label").style.color=T().sub;
+    b.querySelector(".nav-dot").style.display="none";
+  });
+  document.getElementById("page-"+tab).classList.add("active");
+  const btn=document.querySelector(`.nav-btn[data-tab="${tab}"]`);
+  btn.classList.add("active");
+  btn.querySelector(".nav-label").style.color=T().activeNav;
+  btn.querySelector(".nav-dot").style.background=T().activeNav;
+  btn.querySelector(".nav-dot").style.display="block";
+  currentTab=tab;
+  if(tab==="accueil") renderAccueil();
+  if(tab==="recolte"){ document.getElementById("inp-date-r").value=nowLocal(); }
+  if(tab==="vente"){ document.getElementById("inp-date-v").value=nowLocal(); }
+  if(tab==="historique") renderHistorique();
+  if(tab==="analyse") renderAnalyseFruits();
+}
+
+// ═══════════════════════════════════════════════════
+// ACCUEIL
+// ═══════════════════════════════════════════════════
+function fruitStats(fid){
+  const rKg=recoltes.filter(r=>r.fruit===fid).reduce((s,r)=>s+r.qte,0);
+  const vKg=ventes.filter(v=>v.fruit===fid&&v.unite==="kg"&&v.type!=="don").reduce((s,v)=>s+v.qte,0);
+  const dKg=ventes.filter(v=>v.fruit===fid&&v.type==="don"&&v.unite==="kg").reduce((s,v)=>s+v.qte,0);
+  const vEur=ventes.filter(v=>v.fruit===fid&&v.type!=="don").reduce((s,v)=>s+v.prix,0);
+  const stock=Math.max(0,rKg-vKg-dKg);
+  return {rKg,vKg,dKg,vEur,stock};
+}
+
+function renderAccueil(){
+  const t=T();
+  const totalEur=ventes.filter(v=>v.type!=="don").reduce((s,v)=>s+v.prix,0);
+  const totalKgR=recoltes.reduce((s,r)=>s+r.qte,0);
+  const nbVentes=ventes.filter(v=>v.type!=="don").length;
+  const totalDons=ventes.filter(v=>v.type==="don"&&v.unite==="kg").reduce((s,v)=>s+v.qte,0);
+
+  document.getElementById("hero-season-lbl").textContent="Saison 2026";
+  document.getElementById("hero-box-lbl").textContent="Recettes saison";
+  document.getElementById("hero-total").textContent=fmt(totalEur);
+  document.getElementById("stat-kg").textContent=totalKgR.toFixed(1)+" kg";
+  document.getElementById("stat-nb").textContent=nbVentes;
+  if(totalDons>0){
+    document.getElementById("sep-dons").style.display="block";
+    document.getElementById("stat-dons-wrap").style.display="block";
+    document.getElementById("stat-dons").textContent=totalDons.toFixed(1)+" kg";
+  } else {
+    document.getElementById("sep-dons").style.display="none";
+    document.getElementById("stat-dons-wrap").style.display="none";
+  }
+
+  document.getElementById("lbl-bilan-fruit").textContent="Bilan par fruit";
+  document.getElementById("lbl-bilan-fruit").style.color=t.sub;
+
+  const fc_cards=document.getElementById("fruit-cards");
+  const hasData=FRUITS.some(f=>{const s=fruitStats(f.id);return s.rKg>0||s.vEur>0;});
+
+  if(!hasData){
+    fc_cards.innerHTML="";
+    const empty=document.getElementById("empty-accueil");
+    empty.style.display="block"; empty.style.color=t.muted;
+    empty.textContent="Commence par enregistrer ta première récolte 🌱";
+  } else {
+    document.getElementById("empty-accueil").style.display="none";
+    fc_cards.innerHTML=FRUITS.map(f=>{
+      const s=fruitStats(f.id);
+      if(s.rKg===0&&s.vEur===0) return "";
+      const color=fc(f), bgCol=fb(f);
+      const pctV=s.rKg>0?Math.min(100,(s.vKg/s.rKg)*100):0;
+      const pctD=s.rKg>0?Math.min(100,(s.dKg/s.rKg)*100):0;
+      const stockLine=s.stock>0?`<div class="bar-leg-item"><div class="bar-dot" style="background:${t.muted}"></div><span style="color:${dark?"#5ACA80":"#3A7A28"};font-weight:700">📦 ${s.stock.toFixed(1)} kg en stock</span></div>`:"";
+      const donLine=s.dKg>0?`<div class="bar-leg-item"><div class="bar-dot" style="background:${f.accent}"></div><span style="color:${t.sub}">Donné ${s.dKg.toFixed(1)} kg</span></div>`:"";
+      const barSection=s.rKg>0?`
+        <div class="bar-wrap" style="background:${t.barBg}">
+          <div class="bar-sold" style="width:${pctV}%;background:${color}"></div>
+          <div class="bar-gift" style="width:${pctD}%;background:${f.accent}"></div>
+        </div>
+        <div class="bar-legend">
+          <div class="bar-leg-item"><div class="bar-dot" style="background:${color}"></div><span style="color:${t.sub}">Vendu ${pctV.toFixed(0)}%</span></div>
+          ${donLine}${stockLine}
+        </div>`:"";
+      return `<div class="card" style="background:${t.card};border-color:${t.border}">
+        <div class="card-row" style="margin-bottom:${s.rKg>0?12:0}px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="card-icon" style="background:${bgCol}">${f.emoji}</div>
+            <div>
+              <div class="card-name" style="color:${t.text}">${f.label}</div>
+              ${s.rKg>0?`<div class="card-sub" style="color:${t.sub}">🌱 ${s.rKg.toFixed(1)} kg récoltés</div>`:""}
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div class="card-price" style="color:${color}">${fmt(s.vEur)}</div>
+            ${s.vKg>0?`<div class="card-price-sub" style="color:${t.sub}">${s.vKg.toFixed(1)} kg vendus</div>`:""}
+          </div>
+        </div>
+        ${barSection}
+      </div>`;
+    }).join("");
+  }
+
+  // Dernières ventes
+  const secRecents=document.getElementById("section-recents");
+  if(ventes.length>0){
+    secRecents.style.display="block";
+    document.getElementById("lbl-recents").textContent="Dernières sorties";
+    document.getElementById("lbl-recents").style.color=t.sub;
+    document.getElementById("recent-list").innerHTML=ventes.slice(0,3).map(v=>{
+      const f=getFruit(v.fruit);
+      const color=fc(f), bgCol=fb(f);
+      return `<div style="background:${t.card};border:1px solid ${t.border};border-radius:14px;padding:11px 13px;margin-bottom:7px;display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;border-radius:11px;background:${bgCol};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${v.type==="don"?"🎁":f.emoji}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700;color:${t.text}">${v.qte} ${v.unite} ${f.label}</div>
+          <div style="font-size:11px;color:${t.sub}">${fmtDate(v.datetime)}${v.info?" · "+v.info:""}</div>
+        </div>
+        <div style="font-family:Georgia,serif;font-weight:800;color:${v.type==="don"?t.sub:color};font-size:14px">${v.type==="don"?"don":fmt(v.prix)}</div>
+      </div>`;
+    }).join("");
+  } else {
+    secRecents.style.display="none";
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// GRILLES FRUIT / TYPE
+// ═══════════════════════════════════════════════════
+function renderFruitGrid(gridId, selId, selVar, onChange){
+  const t=T();
+  document.getElementById(gridId).innerHTML=FRUITS.map(f=>{
+    const sel=window[selVar]===f.id;
+    const color=fc(f), bgCol=fb(f);
+    return `<button class="fruit-btn" onclick="${onChange}('${f.id}')"
+      style="border-color:${sel?color:t.border};background:${sel?bgCol:t.card}">
+      <span class="fb-emoji">${f.emoji}</span>
+      <span class="fb-label" style="color:${sel?color:t.sub};font-weight:${sel?800:500}">${f.label}</span>
+    </button>`;
+  }).join("");
+}
+function renderFruitGrids(){
+  renderFruitGrid("fruit-grid-r","selFruitR","selFruitR","selectFruitR");
+  renderFruitGrid("fruit-grid-v","selFruitV","selFruitV","selectFruitV");
+}
+function selectFruitR(id){ selFruitR=id; renderFruitGrid("fruit-grid-r","selFruitR","selFruitR","selectFruitR"); updateBtnRecolte(); }
+function selectFruitV(id){ selFruitV=id; renderFruitGrid("fruit-grid-v","selFruitV","selFruitV","selectFruitV"); renderTypeRow(); updateBtnVente(); }
+
+function renderTypeRow(){
+  const t=T(), f=getFruit(selFruitV), color=fc(f), bgCol=fb(f);
+  document.getElementById("type-row-v").innerHTML=TYPES.map(tp=>{
+    const sel=selTypeV===tp.id;
+    return `<button class="type-btn" onclick="selectType('${tp.id}')"
+      style="border-color:${sel?color:t.border};background:${sel?bgCol:t.card};color:${sel?color:t.sub};font-weight:${sel?700:500}">
+      ${tp.emoji} ${tp.label}
+    </button>`;
+  }).join("");
+  updatePrixField();
+}
+function selectType(id){ selTypeV=id; renderTypeRow(); updateBtnVente(); }
+
+function updatePrixField(){
+  document.getElementById("prix-field").style.display=selTypeV==="don"?"none":"block";
+  updateBtnVente();
+}
+function updateBtnRecolte(){
+  const f=getFruit(selFruitR);
+  document.getElementById("btn-recolte").style.background=dark?"linear-gradient(135deg,#1A3A10,#2A5A18)":"linear-gradient(135deg,#1A2E18,#2A4A24)";
+  document.getElementById("btn-recolte").style.color="#C8F0B8";
+  document.getElementById("recolte-tag").textContent="Entrée récolte";
+}
+function updateBtnVente(){
+  const f=getFruit(selFruitV), isDon=selTypeV==="don";
+  const t=T(), color=fc(f), bgCol=fb(f);
+  const btn=document.getElementById("btn-vente");
+  if(isDon){
+    btn.style.background=bgCol; btn.style.color=color;
+    btn.style.border=`2px solid ${color}`;
+    btn.textContent="🎁 Enregistrer le don";
+  } else {
+    btn.style.background=color; btn.style.color=dark?"#0E1210":"#FFFFFF";
+    btn.style.border="none";
+    btn.textContent="💰 Enregistrer la vente";
+  }
+  document.getElementById("vente-tag").textContent=isDon?"Don famille":"Vente";
+}
+
+// ═══════════════════════════════════════════════════
+// SAISIE RÉCOLTE
+// ═══════════════════════════════════════════════════
+function submitRecolte(){
+  hideErr("err-r");
+  const dt=document.getElementById("inp-date-r").value;
+  const qte=parseFloat(document.getElementById("inp-qte-r").value);
+  const note=document.getElementById("inp-note-r").value.trim();
+  if(!dt||isNaN(qte)||qte<=0){ showErr("err-r","Indique le poids récolté."); return; }
+  recoltes.unshift({id:Date.now(),datetime:dt,fruit:selFruitR,qte,note});
+  recoltes.sort((a,b)=>b.datetime.localeCompare(a.datetime));
+  save();
+  document.getElementById("inp-qte-r").value="";
+  document.getElementById("inp-note-r").value="";
+  showToast("🌱 Récolte enregistrée !");
+  goTab("accueil");
+}
+
+// ═══════════════════════════════════════════════════
+// SAISIE VENTE
+// ═══════════════════════════════════════════════════
+function submitVente(){
+  hideErr("err-v");
+  const dt=document.getElementById("inp-date-v").value;
+  const qte=parseFloat(document.getElementById("inp-qte-v").value);
+  const unite=document.getElementById("inp-unite-v").value;
+  const isDon=selTypeV==="don";
+  const prixRaw=document.getElementById("inp-prix-v").value;
+  const prix=isDon?0:parseFloat(prixRaw);
+  const info=document.getElementById("inp-info-v").value.trim();
+  if(!dt||isNaN(qte)||qte<=0){ showErr("err-v","Indique la quantité."); return; }
+  if(!isDon&&(isNaN(prix)||prix<0)){ showErr("err-v","Indique le prix."); return; }
+  ventes.unshift({id:Date.now(),datetime:dt,fruit:selFruitV,type:selTypeV,qte,unite,prix,info});
+  ventes.sort((a,b)=>b.datetime.localeCompare(a.datetime));
+  save();
+  document.getElementById("inp-qte-v").value="";
+  document.getElementById("inp-prix-v").value="";
+  document.getElementById("inp-info-v").value="";
+  showToast(isDon?"🎁 Don enregistré !":"💰 Vente enregistrée !");
+  goTab("accueil");
+}
+
+// ═══════════════════════════════════════════════════
+// HISTORIQUE
+// ═══════════════════════════════════════════════════
+function setVue(vue){
+  vueHist=vue;
+  const t=T();
+  ["ventes","recoltes"].forEach(v=>{
+    const btn=document.getElementById("tog-"+v);
+    btn.style.background=vue===v?t.card:"transparent";
+    btn.style.color=vue===v?t.text:t.sub;
+    btn.style.fontWeight=vue===v?700:500;
+  });
+  renderHistList();
+}
+
+function setFiltre(f){
+  filtreHist=f;
+  renderFilterRow();
+  renderHistList();
+}
+
+function renderFilterRow(){
+  const t=T();
+  const items=[{id:"tous",label:"Tous"},...FRUITS.map(f=>({id:f.id,label:f.emoji+" "+f.label,color:fc(f),bg:fb(f)}))];
+  document.getElementById("filter-row").innerHTML=items.map(f=>{
+    const sel=filtreHist===f.id;
+    return `<button class="filter-btn" onclick="setFiltre('${f.id}')"
+      style="border-color:${sel?(f.color||t.text):t.border};background:${sel?(f.bg||t.tag):t.card};color:${sel?(f.color||t.text):t.sub};font-weight:${sel?700:500}">
+      ${f.label}
+    </button>`;
+  }).join("");
+}
+
+function renderHistList(){
+  const t=T();
+  const liste=vueHist==="ventes"
+    ?(filtreHist==="tous"?ventes:ventes.filter(v=>v.fruit===filtreHist))
+    :(filtreHist==="tous"?recoltes:recoltes.filter(r=>r.fruit===filtreHist));
+
+  if(liste.length===0){
+    document.getElementById("hist-list").innerHTML=`<div class="empty" style="color:${t.muted}">Aucune entrée enregistrée.</div>`;
+    return;
+  }
+
+  if(vueHist==="ventes"){
+    document.getElementById("hist-list").innerHTML=liste.map(v=>{
+      const f=getFruit(v.fruit), tp=TYPES.find(x=>x.id===v.type)||TYPES[0];
+      const color=fc(f), bgCol=fb(f);
+      return `<div class="hist-item" style="background:${t.card};border-color:${t.border}">
+        <div class="hist-icon" style="background:${bgCol}">${v.type==="don"?"🎁":f.emoji}</div>
+        <div style="flex:1;min-width:0">
+          <div class="hist-name" style="color:${t.text}">${v.qte} ${v.unite} ${f.label} <span style="color:${t.sub};font-weight:400;font-size:12px">· ${tp.label}</span></div>
+          <div class="hist-meta" style="color:${t.sub}">${fmtDate(v.datetime)}${v.info?" · "+v.info:""}</div>
+        </div>
+        <div class="hist-price" style="color:${v.type==="don"?t.sub:color}">${v.type==="don"?"don":fmt(v.prix)}</div>
+        <button class="del-btn" style="color:${t.muted}" onclick="delVente(${v.id})">✕</button>
+      </div>`;
+    }).join("");
+  } else {
+    document.getElementById("hist-list").innerHTML=liste.map(r=>{
+      const f=getFruit(r.fruit), color=fc(f), bgCol=fb(f);
+      return `<div class="hist-item" style="background:${t.card};border-color:${t.border}">
+        <div class="hist-icon" style="background:${bgCol}">${f.emoji}</div>
+        <div style="flex:1">
+          <div class="hist-name" style="color:${t.text}">🌱 ${r.qte.toFixed(1)} kg de ${f.label}</div>
+          <div class="hist-meta" style="color:${t.sub}">${fmtDate(r.datetime)}${r.note?" · "+r.note:""}</div>
+        </div>
+        <button class="del-btn" style="color:${t.muted}" onclick="delRecolte(${r.id})">✕</button>
+      </div>`;
+    }).join("");
+  }
+}
+
+function renderHistorique(){
+  const t=T();
+  document.getElementById("hist-title").textContent="Historique";
+  document.getElementById("hist-title").style.color=t.text;
+  document.getElementById("tog-wrap").style.background=t.barBg;
+  setVue(vueHist);
+  renderFilterRow();
+  renderHistList();
+  const btnExp=document.getElementById("btn-export");
+  if(ventes.length>0||recoltes.length>0){
+    btnExp.style.display="block";
+    btnExp.textContent="⬇️ Exporter en CSV";
+    btnExp.style.borderColor=t.text; btnExp.style.color=t.text;
+  } else {
+    btnExp.style.display="none";
+  }
+}
+
+function delVente(id){
+  ventes=ventes.filter(v=>v.id!==id); save();
+  renderHistorique(); showToast("🗑️ Supprimée");
+}
+function delRecolte(id){
+  recoltes=recoltes.filter(r=>r.id!==id); save();
+  renderHistorique(); showToast("🗑️ Supprimée");
+}
+
+// ═══════════════════════════════════════════════════
+// EXPORT CSV
+// ═══════════════════════════════════════════════════
+function exportCSV(){
+  const rows=[
+    ["Type","Date","Heure","Fruit","Quantité","Unité","Prix (€)","Prix/kg (€)","Info"],
+    ...recoltes.map(r=>{
+      const f=getFruit(r.fruit); const[date,time]=r.datetime.split("T");
+      return["Récolte",date,time?.slice(0,5)||"",f.label,r.qte,"kg","","",r.note||""];
+    }),
+    ...ventes.map(v=>{
+      const f=getFruit(v.fruit); const[date,time]=v.datetime.split("T");
+      const pxKg=v.unite==="kg"&&v.qte>0?(v.prix/v.qte).toFixed(2):"";
+      return[v.type==="don"?"Don":"Vente",date,time?.slice(0,5)||"",f.label,v.qte,v.unite,v.prix.toFixed(2),pxKg,v.info||""];
+    })
+  ];
+  const csv=rows.map(r=>r.join(";")).join("\n");
+  const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download="garden_2026.csv"; a.click();
+  URL.revokeObjectURL(url);
+  showToast("📥 CSV exporté !");
+}
+
+// ═══════════════════════════════════════════════════
+// ANALYSE IA
+// ═══════════════════════════════════════════════════
+function renderAnalyseFruits(){
+  const t=T();
+  document.getElementById("analyse-tag").textContent="Intelligence";
+  document.getElementById("analyse-intro").textContent="Claude analyse tes données et te donne des conseils personnalisés pour optimiser ta prochaine saison.";
+
+  const parFruit=FRUITS.map(f=>{
+    const s=fruitStats(f.id);
+    const pxMoy=s.vKg>0?(s.vEur/s.vKg).toFixed(2):null;
+    return {...f,...s,pxMoy};
+  }).filter(f=>f.rKg>0||f.vEur>0);
+
+  const empty=document.getElementById("analyse-empty");
+  const list=document.getElementById("analyse-fruit-list");
+  const btn=document.getElementById("btn-analyse");
+
+  if(parFruit.length===0){
+    empty.style.display="block"; empty.style.color=t.muted;
+    empty.textContent="Enregistre d'abord quelques récoltes et ventes pour obtenir une analyse.";
+    list.innerHTML=""; btn.style.display="none";
+    return;
+  }
+  empty.style.display="none";
+  btn.style.display="block";
+  btn.style.background=dark?"linear-gradient(135deg,#1A3A10,#2A5A18)":"linear-gradient(135deg,#1A2E18,#2A4A24)";
+  btn.style.color="#C8F0B8";
+
+  list.innerHTML=parFruit.map(f=>{
+    const color=fc(f), bgCol=fb(f);
+    const stockLine=f.stock>0?`<div style="font-size:11px;color:${dark?"#5ACA80":"#3A7A28"};font-weight:700;margin-top:1px">📦 ${f.stock.toFixed(1)} kg en stock</div>`:"";
+    return `<div style="background:${t.card};border:1px solid ${t.border};border-radius:16px;padding:13px 14px;display:flex;align-items:center;gap:12px;margin-bottom:8px">
+      <div style="width:40px;height:40px;border-radius:12px;background:${bgCol};display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">${f.emoji}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700;color:${t.text}">${f.label}</div>
+        <div style="font-size:11px;color:${t.sub};margin-top:1px">
+          ${f.rKg>0?`🌱 ${f.rKg.toFixed(1)} kg`:""}${f.vKg>0?` · ${f.vKg.toFixed(1)} kg vendus`:""}${f.pxMoy?` · ${f.pxMoy} €/kg`:""}
+        </div>
+        ${stockLine}
+      </div>
+      <div style="font-family:Georgia,serif;font-weight:800;color:${color};font-size:16px;flex-shrink:0">${fmt(f.vEur)}</div>
+    </div>`;
+  }).join("");
+}
+
+async function lancerAnalyse(){
+  const t=T();
+  const btn=document.getElementById("btn-analyse");
+  btn.textContent="⏳ Analyse en cours…";
+  btn.disabled=true;
+  btn.style.background=dark?"#1A2818":"#E0EAD8";
+  btn.style.color=dark?"#4A7A44":"#8AAA80";
+  document.getElementById("err-analyse").style.display="none";
+  document.getElementById("analyse-result").style.display="none";
+
+  const parFruit=FRUITS.map(f=>{
+    const s=fruitStats(f.id);
+    const vKg=s.vKg, pxMoy=vKg>0?(s.vEur/vKg).toFixed(2):null;
+    return {...f,...s,pxMoy};
+  }).filter(f=>f.rKg>0||f.vEur>0);
+
+  const totalEur=ventes.filter(v=>v.type!=="don").reduce((s,v)=>s+v.prix,0);
+  const totalKgR=recoltes.reduce((s,r)=>s+r.qte,0);
+  const resume=parFruit.map(f=>`${f.label}: ${f.rKg.toFixed(1)} kg récoltés, ${f.nb||0} vente(s), ${f.vEur.toFixed(2)}€${f.pxMoy?`, prix moyen ${f.pxMoy}€/kg`:""}${f.dKg>0?`, ${f.dKg.toFixed(1)} kg donnés`:""}${f.stock>0?`, ${f.stock.toFixed(1)} kg en stock`:""}`).join("\n");
+
+  const prompt=`Tu es un ami bienveillant qui connaît bien le jardinage et la vente directe (marché, voisins, bord de route).
+
+Bilan de la saison 2026 d'un jardinier amateur :
+${resume}
+Total récolté : ${totalKgR.toFixed(1)} kg · Total encaissé : ${totalEur.toFixed(2)}€
+
+Analyse chaleureuse et concrète en 5-6 phrases : fruit le plus rentable, constat sur le stock si pertinent, conseil pour la prochaine saison, mot d'encouragement. Style direct, comme un ami. Pas de listes, texte fluide en français.`;
+
+  try {
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:prompt}]})
+    });
+    const data=await res.json();
+    const txt=data.content?.map(c=>c.text||"").join("").trim();
+    if(txt){
+      analyseText=txt;
+      const res_box=document.getElementById("analyse-result");
+      const lbl=document.getElementById("analyse-result-lbl");
+      const textel=document.getElementById("analyse-text");
+      const reset=document.getElementById("analyse-reset");
+      lbl.textContent="💡 Ton analyse personnalisée";
+      lbl.style.color=t.accentTxt;
+      textel.textContent=txt;
+      textel.style.color=t.text;
+      reset.textContent="Relancer une analyse →";
+      reset.style.color=t.sub;
+      res_box.style.background=t.accentBg;
+      res_box.style.borderColor=t.accentBorder;
+      res_box.style.display="block";
+    } else {
+      showAnalyseErr("Réponse inattendue. Réessaie.");
+    }
+  } catch(e){
+    showAnalyseErr("Erreur de connexion. Vérifie ta connexion internet.");
+  }
+
+  btn.textContent="✨ Analyser ma saison 2026";
+  btn.disabled=false;
+  btn.style.background=dark?"linear-gradient(135deg,#1A3A10,#2A5A18)":"linear-gradient(135deg,#1A2E18,#2A4A24)";
+  btn.style.color="#C8F0B8";
+}
+
+function showAnalyseErr(msg){
+  const t=T();
+  const el=document.getElementById("err-analyse");
+  el.textContent=msg; el.style.color="#E06050";
+  el.style.background=dark?"#2A1010":"#FDF0EC";
+  el.style.display="block";
+}
+
+function resetAnalyse(){
+  analyseText=null;
+  document.getElementById("analyse-result").style.display="none";
+}
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+function initLabels(){
+  document.getElementById("lbl-date-r").textContent="Date & heure";
+  document.getElementById("lbl-qte-r").textContent="Poids récolté (kg)";
+  document.getElementById("lbl-note-r").textContent="Note (optionnel)";
+  document.getElementById("lbl-date-v").textContent="Date & heure";
+  document.getElementById("lbl-qte-v").textContent="Quantité";
+  document.getElementById("lbl-prix-v").textContent="Prix encaissé (€)";
+  document.getElementById("lbl-info-v").textContent="Info supplémentaire";
+}
+
+window.addEventListener("DOMContentLoaded",()=>{
+  load();
+  initLabels();
+  applyTheme();
+  renderFruitGrids();
+  renderTypeRow();
+  updateBtnRecolte();
+  updateBtnVente();
+  document.getElementById("inp-date-r").value=nowLocal();
+  document.getElementById("inp-date-v").value=nowLocal();
+  goTab("accueil");
+});
+</script>
+</body>
+</html>
